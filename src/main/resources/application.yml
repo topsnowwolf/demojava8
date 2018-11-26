@@ -1,0 +1,23 @@
+spring:
+  datasource:
+    #数据库连接方式
+    type: com.zaxxer.hikari.HikariDataSource
+    driver-class-name: com.mysql.jdbc.Driver
+    username: root
+    password: 123456
+    url: jdbc:mysql://localhost/wolf?characterEncoding=utf-8&useSSL=false&serverTimezone=UTC
+    #  Hikari 连接池配置 ------ 详细配置请访问：https://github.com/brettwooldridge/HikariCP
+    hikari:
+      # 连接池母子
+      pool-name: TestHikariCP
+      # 最小空闲连接数量
+      minimum-idle: 5
+      # 此属性控制池中连接的最长生命周期，值0表示无限生命周期，默认1800000即30分钟
+      max-lifetime: 180000
+      # 连接池最大连接数，默认是10
+      maximum-pool-size: 15
+      # 数据库连接超时时间,默认30秒，即30000
+      connection-timeout: 30000
+      # 此属性控制从池返回的连接的默认自动提交行为,默认值：true
+      auto-commit: true
+      connection-test-query: SELECT 1
