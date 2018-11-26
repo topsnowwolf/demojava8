@@ -201,5 +201,15 @@ public class LambdaTest {
         summaryStatistics.getMax();
         summaryStatistics.getMin();
         summaryStatistics.getSum();
+        //根据所在的城市分组
+        Map<String, List<ShopEo>> listMap = shopService.findAll().stream().collect(groupingBy(ShopEo::getShopCity));
+        //根据所在城市分组之后再按店铺的状态分组
+        Map<String, Map<String, List<ShopEo>>> mapMap = shopService.findAll().stream().collect(groupingBy(ShopEo::getShopCity, groupingBy(ShopEo::getStatus)));
+        //查询每个城市销售量最高的店铺
+        Map<String, Optional<ShopEo>> optionalMap = shopService.findAll().stream().collect(groupingBy(ShopEo::getShopCity, maxBy(Comparator.comparing(ShopEo::getSaleroom))));
+        Map<String, ShopEo> shopEoMap = shopService.findAll().stream().collect(groupingBy
+                (ShopEo::getShopCity, collectingAndThen(maxBy(Comparator.comparing(ShopEo::getSaleroom)), Optional::get))
+        );
+
     }
 }
