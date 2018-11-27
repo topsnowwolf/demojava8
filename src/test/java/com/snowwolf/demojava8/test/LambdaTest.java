@@ -3,6 +3,7 @@ package com.snowwolf.demojava8.test;
 import com.snowwolf.demojava8.mode.dto.ShopDto;
 import com.snowwolf.demojava8.mode.eo.ShopEo;
 import com.snowwolf.demojava8.mode.service.impl.ShopServiceImpl;
+import com.snowwolf.demojava8.mode.util.ForkJoinSumTask;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,8 +15,13 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ForkJoinTask;
+import java.util.concurrent.atomic.LongAccumulator;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.*;
@@ -81,7 +87,7 @@ public class LambdaTest {
          * 使用比较器链thenComparing,可以链多个！！
          */
         shopEoList.sort(Comparator.comparing(ShopEo::getDistance).thenComparing(ShopEo::getSaleroom));
-        //到这里你发觉是不是java的函数式编程很6很6。太强大了吧！下面还有更强大的！
+        //到这里你发觉是不是java8的函数式编程很6很6。太强大了吧！下面还有更强大的！
     }
 
     /**
@@ -96,8 +102,30 @@ public class LambdaTest {
         List<ShopEo> shopEoList1 = shopService.findAll().parallelStream().filter(shopEo -> shopEo.getSaleroom()>1000).collect(Collectors.toList());
         /**
          * 此时你会对parallelStream很感兴趣，他是怎么处理的？怎么就能实现并行了呢。实现原理就是forkjoin！！！
+         * 以递归的方式将流划分成多个子流给不同线程执行，最后合并结果。
          */
         //TODO
+        /**
+         * 使用并行流注意的要点：不是什么时候使用都可以提升效率。因为并行要对流进行递归划分，将子流划归到不同线程中，之后再合并所有线程的结果。
+         * 所以：不能使用在会改变共享变量值的情况下。 要按顺序执行的流不能使用并行，例如limit和findFirst等。数据量小不适合使用。遍历的数据结构拆分效率慢的不适合
+         * (例如：LinkedList)。
+         * 例子：
+         */
+        //这个就会导致并发的问题
+        Accumulator accumulator = new Accumulator();
+        LongStream.rangeClosed(1,100).parallel().forEach(accumulator::add);
+        Long total = accumulator.total;
+    }
+
+    /**
+     *forkjoin框架的简单认识
+     * 它的核心思想就是：以递归的方式将可以平行的任务拆分成更小的任务给每一个线程执行，最后合并结果。
+     * 创建：创建一个任务，任务必须继承RecursiveTask,之后重写compute。创建一个ForkJoinPool()线程池对象，将任务invoke进去。
+     */
+    public void testForkJoin(){
+        long numbers[] = LongStream.rangeClosed(1,200000).toArray();
+        ForkJoinTask<Long> task = new ForkJoinSumTask(numbers);
+        long tatol = new ForkJoinPool().invoke(task);
     }
 
     /**
@@ -182,7 +210,10 @@ public class LambdaTest {
     /**
      * 用流对数据进行收集整理
      * 1.归约汇总
-     * 2.分组分区
+     * 2.分组分区(注意：分组可以分成多个组，partitioningBy分区只能分两个)
+     * 常用的方法：toList,toSet,toCollection,summingInt,averagingInt,summarizingInt,joing,maxBy,minBy,reducing,collectingAndThen
+     * groupingBy,partitioningBy等等。在此不多介绍，自己查看API。
+     * 下面主要介绍常用到的场景！
      */
 
     public void testStreamCollecte(){
@@ -191,6 +222,7 @@ public class LambdaTest {
         if(eoOptional.isPresent()){
             eoOptional.get();
         }
+        ShopEo shopEo = shopService.findAll().stream().collect(collectingAndThen(maxBy(Comparator.comparing(ShopEo::getSaleroom)), Optional::get));
         //查询所有的销售总和
         Long collect = shopService.findAll().stream().collect(summingLong(ShopEo::getSaleroom));
         //查询销售平均值
@@ -210,6 +242,23 @@ public class LambdaTest {
         Map<String, ShopEo> shopEoMap = shopService.findAll().stream().collect(groupingBy
                 (ShopEo::getShopCity, collectingAndThen(maxBy(Comparator.comparing(ShopEo::getSaleroom)), Optional::get))
         );
+        //每一个城市下销售额大于10000的为A，销售额小于10000大于5000的为B，5000以下的为C
+        Map<String, Map<String, List<ShopEo>>> stringMapMap = shopService.findAll().stream().collect(groupingBy(ShopEo::getShopCity, groupingBy(shop -> {
+            if (shop.getSaleroom() > 10000) {
+                return "A";
+            } else if (shop.getSaleroom() > 5000 && shop.getSaleroom() <= 10000) {
+                return "B";
+            } else {
+                return "C";
+            }
+        })));
+        //统计每一个城市的总销售额
+        Map<String, Long> stringLongMap = shopService.findAll().stream().collect(groupingBy(ShopEo::getShopCity, summingLong(ShopEo::getSaleroom)));
 
+        //分区
+        //销售额大于10000的为true分区，小于的为false分区
+        Map<Boolean, List<ShopEo>> booleanListMap = shopService.findAll().stream().collect(partitioningBy(shop -> shop.getSaleroom() > 10000));
+        //是直店铺的true分组，非直销店铺false分区
+        Map<Boolean, List<ShopEo>> map = shopService.findAll().stream().collect(partitioningBy(ShopEo::getType));
     }
 }

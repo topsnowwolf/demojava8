@@ -22,4 +22,5 @@ public class ShopEo {
     private String status;
     private Double distance;
     private Long saleroom;
+    private Boolean type;
 }
