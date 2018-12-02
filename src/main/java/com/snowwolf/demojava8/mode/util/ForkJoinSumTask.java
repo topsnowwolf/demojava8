@@ -38,6 +38,10 @@ public class ForkJoinSumTask extends RecursiveTask<Long> {
         return join+compute;
     }
 
+    /**
+     * 计算每一个子任务的结果
+     * @return
+     */
     private long computeTask(){
         long sum = 0;
         for(int i=start;i<end;i++){

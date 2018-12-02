@@ -1,4 +1,4 @@
-package com.snowwolf.demojava8.test;
+package com.snowwolf.demojava8.test.simpleuse;
 
 /**
  * @author: topsnowwolf
