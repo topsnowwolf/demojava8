@@ -16,6 +16,7 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
@@ -232,6 +233,9 @@ public class LambdaTest {
         summaryStatistics.getSum();
         //根据所在的城市分组
         Map<String, List<ShopEo>> listMap = shopService.findAll().stream().collect(groupingBy(ShopEo::getShopCity));
+
+         shopService.findAll().stream().collect(groupingBy(ShopEo::getShopCity,
+                Collectors.toMap(ShopEo::getShopName, Function.identity())));
         //根据所在城市分组之后再按店铺的状态分组
         Map<String, Map<String, List<ShopEo>>> mapMap = shopService.findAll().stream().collect(groupingBy(ShopEo::getShopCity, groupingBy(ShopEo::getStatus)));
         //查询每个城市销售量最高的店铺
