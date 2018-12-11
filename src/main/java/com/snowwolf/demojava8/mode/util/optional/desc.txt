@@ -1,0 +1,3 @@
+Optional对象的作用：
+主要用来处理空值。
+常用的方法有：empty,of,ofNullable,orElse,get,ifPresent,orElseThrow等。
